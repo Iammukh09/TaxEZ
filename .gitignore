@@ -1,0 +1,8 @@
+# Keep local credentials, database files, and dependencies out of version control.
+.env
+.env.*
+!.env.example
+node_modules/
+data/*.sqlite
+data/*.sqlite-shm
+data/*.sqlite-wal

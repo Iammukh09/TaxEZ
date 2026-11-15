@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>TaxEZ | Tax information organizer</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="countries.js" defer></script>
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="#" aria-label="TaxEZ home">TaxEZ</a>
+      <span class="location" id="location-label">British Columbia, Canada</span>
+      <button class="header-button" id="logout-button" type="button" hidden>Log out</button>
+    </header>
+
+    <main>
+      <!-- Server-side account checks protect the application and its records. -->
+      <section class="card login-card" id="login-panel" aria-labelledby="login-title">
+        <p class="eyebrow">AI TAX ASSISTANT DEMO</p>
+        <h1 id="login-title">Welcome to TaxEZ</h1>
+        <p class="help" id="login-description">Sign in or create an account to chat about tax topics worldwide and save synthetic demo records.</p>
+        <form id="login-form">
+          <label for="login-username">Username</label>
+          <input id="login-username" name="username" type="text" autocomplete="username" minlength="3" maxlength="32" pattern="[A-Za-z0-9._-]+" required>
+          <label for="login-password">Password</label>
+          <input id="login-password" name="password" type="password" autocomplete="current-password" minlength="12" maxlength="1024" required>
+          <p class="error" id="login-error" role="alert" hidden></p>
+          <button class="button button-primary" id="login-submit" type="submit">Sign in</button>
+          <button class="button button-quiet" id="account-mode-button" type="button">Create an account instead</button>
+        </form>
+      </section>
+
+      <div id="app-shell" hidden>
+        <section class="intro">
+          <p class="eyebrow">YOUR TAX INFO, ORGANIZED</p>
+          <h1>Get your tax details together.</h1>
+          <p>Ask the AI about tax topics worldwide, get official sources when available, and organize demo records.</p>
+          <p class="notice"><strong>Public demo:</strong> use made-up values only. No tax calculations or filing.</p>
+          <p class="vault-status" id="account-status" role="status" aria-live="polite"></p>
+        </section>
+
+        <section class="card location-card" aria-labelledby="location-title">
+          <form id="location-form">
+            <label id="location-title" for="location-select">Country for tax guidance and new records</label>
+            <select id="location-select" name="countryCode" required></select>
+            <label for="region-input">State, province, territory, or region (optional)</label>
+            <input id="region-input" name="region" type="text" list="region-options" maxlength="80" autocomplete="off" placeholder="For example, California or Ontario">
+            <datalist id="region-options"></datalist>
+            <button class="button button-primary" id="location-save" type="submit">Save location</button>
+          </form>
+          <p class="help">Choose from 249 countries and territories. Start typing a state, province, or region for ISO suggestions, or enter a custom region. New records use this location; existing records keep their saved location.</p>
+          <p class="location-status" id="location-status" role="status" aria-live="polite"></p>
+        </section>
+
+        <section class="card chat-card" id="chat-card" aria-labelledby="chat-title" hidden>
+          <p class="eyebrow">CHAT WITH TAXEZ</p>
+          <h2 id="chat-title">What can I help with?</h2>
+          <p class="help">Ask tax-prep questions for your selected country and region, or tell me made-up values to suggest form entries. I can't calculate tax, determine eligibility, or give personalized filing advice.</p>
+          <div class="chat-transcript" id="chat-transcript" role="log" aria-live="polite" aria-relevant="additions"></div>
+          <div class="chat-citations" id="chat-citations" aria-live="polite"></div>
+          <form id="chat-form">
+            <label for="chat-input">Your message</label>
+            <textarea id="chat-input" name="message" rows="3" maxlength="1500" placeholder="Ask a question or share a made-up tax year and amount..." required></textarea>
+            <label class="chat-consent-label">
+              <input id="chat-consent" name="consent" type="checkbox" required>
+              <span>I agree to send my message and recent chat to Google Gemini. Free-tier terms apply; I'll use made-up values and avoid names, SINs, and account numbers.</span>
+            </label>
+            <p class="error" id="chat-error" role="alert" hidden></p>
+            <p class="chat-status" id="chat-status" role="status" aria-live="polite"></p>
+            <div class="chat-actions">
+              <button class="button button-primary" id="chat-submit" type="submit">Send message</button>
+              <button class="button button-quiet" id="chat-clear" type="button">Clear chat</button>
+            </div>
+          </form>
+          <p class="privacy-note">Chat stays in this tab and is sent to Gemini only after consent. Verified official sources are shown when available. The AI is not guaranteed to be correct; verify tax decisions with your local tax authority.</p>
+        </section>
+
+        <details class="card ai-intake-card optional-disclosure" id="ai-intake-card" hidden>
+          <summary class="disclosure-summary">Optional: extract values from a synthetic document instead</summary>
+          <div class="optional-content">
+          <p class="eyebrow">AI-POWERED INTAKE</p>
+          <p class="help">Upload a synthetic PDF or image to prefill the form with AI suggestions. Gemini's free tier may use submitted content to improve Google products, so never upload real tax slips or identity documents.</p>
+          <form id="ai-intake-form">
+            <label for="ai-document">Synthetic sample (PDF, JPEG, PNG, or WebP; up to 8 MB)</label>
+            <input id="ai-document" name="document" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp" required>
+            <label class="ai-consent-label">
+              <input id="ai-consent" name="consent" type="checkbox" required>
+              <span>I understand that clicking extract sends this file to Google Gemini, where free-tier data-use terms apply.</span>
+            </label>
+            <p class="error" id="ai-error" role="alert" hidden></p>
+            <p class="ai-status" id="ai-status" role="status" aria-live="polite"></p>
+            <button class="button button-primary" id="ai-submit" type="submit">Extract details with AI</button>
+          </form>
+          <p class="privacy-note">AI suggestions are not saved until you review and submit the manual form below. The upload is not saved by this app.</p>
+          </div>
+        </details>
+
+        <section class="card saved-records" id="saved-records" aria-labelledby="saved-records-title" hidden>
+          <div class="preview-heading">
+            <div>
+              <p class="eyebrow">SAVED TO YOUR ACCOUNT</p>
+              <h2 id="saved-records-title">Your records</h2>
+            </div>
+            <span class="review-tag" id="record-count">0 records</span>
+          </div>
+          <p class="help">Choose a record to review or download it. Records are encrypted in the local SQLite database and scoped to your account.</p>
+          <ul class="record-list" id="record-list"></ul>
+          <p class="empty-records" id="empty-records">No records saved yet. Add one using the form below.</p>
+        </section>
+
+        <div class="columns" id="workspace" hidden>
+          <form class="card" id="tax-form">
+            <h2>Prefer manual entry?</h2>
+            <p class="help">Enter values directly here; manual entries are not sent to AI.</p>
+
+            <label for="tax-year">Tax year</label>
+            <input id="tax-year" name="taxYear" type="number" min="2000" max="2099" step="1" value="2025" required>
+
+            <label for="employment-income">Employment income <span id="employment-currency-label">(CAD)</span></label>
+            <input id="employment-income" name="employmentIncome" type="number" min="0" max="99999999.99" step="0.01" placeholder="62000.00" required>
+
+            <label for="tax-withheld">Income tax withheld <span id="withheld-currency-label">(CAD)</span></label>
+            <input id="tax-withheld" name="incomeTaxWithheld" type="number" min="0" max="99999999.99" step="0.01" placeholder="9500.00" required>
+
+            <label for="currency-code">Currency code (ISO 4217)</label>
+            <input id="currency-code" name="currency" type="text" list="currency-options" maxlength="3" pattern="[A-Za-z]{3}" value="CAD" required>
+            <datalist id="currency-options"></datalist>
+            <p class="help">The selected country's usual currency is filled in when available. Change it if needed.</p>
+
+            <label for="retirement-contributions">Retirement or pension contributions <span id="retirement-currency-label">(CAD)</span></label>
+            <input id="retirement-contributions" name="retirementContributions" type="number" min="0" max="99999999.99" step="0.01" value="0" required>
+
+            <details class="document-details">
+              <summary class="disclosure-summary">Optional: track documents you've gathered</summary>
+              <fieldset class="document-checklist">
+                <legend>Document types</legend>
+                <p class="document-hint">Skip this if you don't need a checklist.</p>
+                <div class="document-options">
+                  <label class="document-option">
+                    <input name="documentsCollected" type="checkbox" value="Employment income statements or slips">
+                    <span>Employment income statements or slips</span>
+                  </label>
+                  <label class="document-option">
+                    <input name="documentsCollected" type="checkbox" value="Other income statements">
+                    <span>Other income statements</span>
+                  </label>
+                  <label class="document-option">
+                    <input name="documentsCollected" type="checkbox" value="Retirement or pension contribution records">
+                    <span>Retirement or pension contribution records</span>
+                  </label>
+                  <label class="document-option">
+                    <input name="documentsCollected" type="checkbox" value="Childcare, medical, charitable, or education receipts">
+                    <span>Childcare, medical, charitable, or education receipts</span>
+                  </label>
+                  <label class="document-option">
+                    <input name="documentsCollected" type="checkbox" value="Investment income statements">
+                    <span>Investment income statements</span>
+                  </label>
+                </div>
+              </fieldset>
+            </details>
+
+            <p class="error" id="form-error" role="alert" hidden></p>
+            <button class="button button-primary" type="submit">Review and save record</button>
+            <button class="button button-quiet" type="reset">Clear form</button>
+          </form>
+
+          <section class="card" aria-labelledby="preview-title">
+            <div class="preview-heading">
+              <div>
+                <p class="eyebrow">REVIEW BEFORE YOU USE IT</p>
+                <h2 id="preview-title">JSON preview</h2>
+              </div>
+              <span class="review-tag">You stay in control</span>
+            </div>
+            <p class="help">Your record appears here after you submit the form.</p>
+            <pre id="json-preview" aria-live="polite"><code>{
+  "status": "Ready for AI extraction or manual entry"
+}</code></pre>
+            <button class="button button-download" id="download-button" type="button" disabled>Download this record (unencrypted)</button>
+            <p class="privacy-note">Saved records are encrypted in the database with a key derived from your account password. The running server can access records while you are signed in. Downloads are unencrypted.</p>
+          </section>
+        </div>
+
+      </div>
+    </main>
+
+    <footer>
+      <span>TaxEZ</span>
+      <span>AI tax demo · Use synthetic data only · Not tax advice</span>
+    </footer>
+  </body>
+</html>
