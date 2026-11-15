@@ -24,7 +24,7 @@ The chat scope is checked in the server and reinforced with model instructions. 
 - User records are encrypted with AES-256-GCM before storage in SQLite. The encryption key is derived from the account password with scrypt; only a password verifier and encrypted records are stored in the database.
 - Passwords are never stored. Losing a password means the encrypted records cannot be recovered; there is no password reset.
 - The running server holds account data keys in memory and can access records while a session is active. Encryption at rest does not protect against a compromised Codespace, server, or browser.
-- Login sessions expire after 15 minutes or a server restart. Authentication and AI requests have per-IP rate limits.
+- Login sessions expire after 15 minutes or a server restart. Authentication attempts are rate-limited per username; AI requests are rate-limited per server connection.
 - A tax chat turn may use two Gemini calls: one for a grounded answer and one for extracting explicitly stated form values. Gemini quotas still apply.
 - Chat and optional documents are sent to Gemini only after consent. Gemini free-tier data-use terms may allow submitted prompts and responses to be used to improve Google products. Do not send real tax slips, personal identifiers, or real financial information.
 - This demo is not production-ready. Public access permits anyone with the link to create an account. Do not use real tax or identity information, and do not treat the prototype as secure for production.

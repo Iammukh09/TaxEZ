@@ -343,6 +343,19 @@ async function createLegacyVault(entries) {
   });
 }
 
+test("app markup contains every element queried during initialization", async () => {
+  const [html, source] = await Promise.all([
+    readFile(path.join(__dirname, "..", "index.html"), "utf8"),
+    readFile(path.join(__dirname, "..", "app.js"), "utf8")
+  ]);
+  const ids = new Set([...html.matchAll(/\bid="([^"]+)"/g)].map(([, id]) => id));
+  const selectors = [...source.matchAll(/document\.querySelector\("([^"]+)"\)/g)]
+    .map(([, selector]) => selector.match(/#([\w-]+)/)?.[1]);
+  for (const id of selectors) {
+    assert.ok(ids.has(id), `index.html must contain the element queried by #${id}`);
+  }
+});
+
 test("account signup migrates old records and keeps AI review and saving explicit", async () => {
   const oldEntry = {
     id: "legacy-1",
@@ -384,6 +397,7 @@ test("account signup migrates old records and keeps AI review and saving explici
   });
   await new Promise(setImmediate);
   assert.equal(elements["#app-shell"].hidden, true);
+  assert.equal(elements["#login-submit"].disabled, false);
 
   await elements["#account-mode-button"].dispatch("click");
   elements["#login-username"].value = "alice";
@@ -468,4 +482,34 @@ test("account signup migrates old records and keeps AI review and saving explici
   assert.equal(elements["#chat-card"].hidden, true);
   assert.equal(elements["#chat-consent"].checked, false);
   assert.equal(elements["#record-list"].children.length, 0);
+
+  await elements["#account-mode-button"].dispatch("click");
+  window.fetch = async (route) => route === "/api/login"
+    ? {
+        ok: false,
+        status: 401,
+        json: async () => ({ error: "The username or password is incorrect." })
+      }
+    : { ok: true, status: 200, json: async () => ({ authenticated: false }) };
+  elements["#login-username"].value = "alice";
+  elements["#login-password"].value = "incorrect password";
+  await loginForm.dispatch("submit", { preventDefault() {} });
+  assert.equal(elements["#login-password"].value, "incorrect password");
+  assert.equal(elements["#login-error"].textContent, "The username or password is incorrect.");
+
+  window.fetch = async (route) => route === "/api/login"
+    ? {
+        ok: true,
+        status: 200,
+        json: async () => ({ authenticated: true, username: "alice", expiresAt: Date.now() + 900000 })
+      }
+    : {
+        ok: false,
+        status: 401,
+        json: async () => ({ error: "Log in to use TaxEZ." })
+      };
+  elements["#login-password"].value = "correct password";
+  await loginForm.dispatch("submit", { preventDefault() {} });
+  assert.equal(elements["#login-password"].value, "correct password");
+  assert.equal(elements["#login-error"].textContent, "Log in to use TaxEZ.");
 });

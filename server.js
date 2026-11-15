@@ -11,7 +11,7 @@ const LOOPBACK_HOST = "127.0.0.1";
 const SESSION_COOKIE = "taxez_session";
 const SESSION_LIFETIME_MS = 15 * 60 * 1000;
 const AUTH_WINDOW_MS = 15 * 60 * 1000;
-const MAX_AUTH_ATTEMPTS = 10;
+const MAX_AUTH_ATTEMPTS_PER_USERNAME = 10;
 const AI_WINDOW_MS = 60 * 60 * 1000;
 const MAX_AI_REQUESTS_PER_IP = 20;
 const MAX_DOCUMENT_BYTES = 8 * 1024 * 1024;
@@ -282,20 +282,32 @@ function validateOrigin(request, port, codespacesForwardedHost) {
   // Reject cross-site requests and DNS-rebinding hostnames before login or upload is handled.
   const localHost = `${LOOPBACK_HOST}:${port}`;
   const localhostHost = `localhost:${port}`;
+  const requestHost = typeof request.headers.host === "string"
+    ? request.headers.host.toLowerCase().replace(/:443$/, "")
+    : "";
+  let requestOrigin = null;
+  const originHeader = request.headers.origin ?? request.headers.referer;
+  if (typeof originHeader === "string") {
+    try {
+      requestOrigin = new URL(originHeader).origin.toLowerCase();
+    } catch {
+      requestOrigin = null;
+    }
+  }
   if (
-    (request.headers.host === localHost || request.headers.host === localhostHost) &&
-    request.headers.origin === `http://${request.headers.host}`
+    (requestHost === localHost || requestHost === localhostHost) &&
+    requestOrigin === `http://${requestHost}`
   ) {
     return;
   }
 
   const isCodespacesOrigin =
     codespacesForwardedHost &&
-    request.headers.origin === `https://${codespacesForwardedHost}` &&
+    requestOrigin === `https://${codespacesForwardedHost.toLowerCase()}` &&
     (
-      request.headers.host === codespacesForwardedHost ||
-      request.headers.host === localHost ||
-      request.headers.host === `localhost:${port}`
+      requestHost === codespacesForwardedHost.toLowerCase() ||
+      requestHost === localHost ||
+      requestHost === localhostHost
     );
   if (isCodespacesOrigin) {
     return;
@@ -724,12 +736,13 @@ function createTaxEZServer({
     return session;
   }
 
-  function checkRateLimit(map, request, windowMs, maximum, errorMessage) {
+  function checkRateLimit(map, request, windowMs, maximum, errorMessage, identity = "") {
     const address = request.socket.remoteAddress || LOOPBACK_HOST;
-    const attempt = map.get(address);
+    const key = identity ? `${address}:${identity}` : address;
+    const attempt = map.get(key);
     if (!attempt || attempt.resetAt <= Date.now()) {
       const fresh = { count: 0, resetAt: Date.now() + windowMs };
-      map.set(address, fresh);
+      map.set(key, fresh);
       return fresh;
     }
     if (attempt.count >= maximum) {
@@ -1067,16 +1080,17 @@ function createTaxEZServer({
         request.method === "POST"
       ) {
         validateOrigin(request, server.address()?.port || port, codespacesForwardedHost);
+        const body = await readJsonBody(request, 8192);
+        const { username, password } = validateAccountCredentials(body);
         const authAttempt = checkRateLimit(
           authAttempts,
           request,
           AUTH_WINDOW_MS,
-          MAX_AUTH_ATTEMPTS,
-          "Too many account requests. Wait 15 minutes and try again."
+          MAX_AUTH_ATTEMPTS_PER_USERNAME,
+          "Too many account requests for this username. Wait 15 minutes and try again.",
+          username.toLowerCase()
         );
         authAttempt.count += 1;
-        const body = await readJsonBody(request, 8192);
-        const { username, password } = validateAccountCredentials(body);
 
         if (route === "/api/register") {
           if (database.prepare("SELECT 1 FROM users WHERE username = ?").get(username)) {

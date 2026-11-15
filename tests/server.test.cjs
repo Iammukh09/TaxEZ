@@ -280,11 +280,12 @@ test("accounts, encrypted records, worldwide tax chat, and intake are protected"
   const countryScript = await fetch(`${origin}/countries.js`);
   assert.equal(countryScript.status, 200);
   assert.match(await countryScript.text(), /window\.TAXEZ_COUNTRIES/);
-  const post = (route, body, { cookie, requestOrigin = origin } = {}) =>
+  const post = (route, body, { cookie, requestOrigin = origin, requestReferer } = {}) =>
     fetch(`${origin}${route}`, {
       method: "POST",
       headers: {
-        Origin: requestOrigin,
+        ...(requestOrigin === null ? {} : { Origin: requestOrigin }),
+        ...(requestReferer ? { Referer: requestReferer } : {}),
         "Content-Type": "application/json",
         ...(cookie ? { Cookie: cookie } : {})
       },
@@ -304,11 +305,36 @@ test("accounts, encrypted records, worldwide tax chat, and intake are protected"
     { requestOrigin: "http://attacker.example" }
   );
   assert.equal(wrongOrigin.status, 403);
+  const forwardedOrigin = await post(
+    "/api/login",
+    { username: "alice", password: ACCOUNT_PASSWORD },
+    { requestOrigin: "https://test-codespace-8000.app.github.dev:443" }
+  );
+  assert.equal(forwardedOrigin.status, 401);
+  const forwardedReferer = await post(
+    "/api/login",
+    { username: "alice", password: ACCOUNT_PASSWORD },
+    { requestOrigin: null, requestReferer: "https://test-codespace-8000.app.github.dev/" }
+  );
+  assert.equal(forwardedReferer.status, 401);
   const weakPassword = await post("/api/register", {
     username: "alice",
     password: "weak"
   });
   assert.equal(weakPassword.status, 400);
+
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    const failedLogin = await post("/api/login", {
+      username: "locked",
+      password: ACCOUNT_PASSWORD
+    });
+    assert.equal(failedLogin.status, 401);
+  }
+  const rateLimitedLogin = await post("/api/login", {
+    username: "locked",
+    password: ACCOUNT_PASSWORD
+  });
+  assert.equal(rateLimitedLogin.status, 429);
 
   const register = await post("/api/register", {
     username: "alice",

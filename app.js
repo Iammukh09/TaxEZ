@@ -8,6 +8,7 @@ const loginForm = document.querySelector("#login-form");
 const loginUsername = document.querySelector("#login-username");
 const loginPassword = document.querySelector("#login-password");
 const loginSubmit = document.querySelector("#login-submit");
+loginSubmit.disabled = true;
 const loginError = document.querySelector("#login-error");
 const loginDescription = document.querySelector("#login-description");
 const accountModeButton = document.querySelector("#account-mode-button");
@@ -142,7 +143,7 @@ async function requestApi(route, { method = "GET", body } = {}) {
     response.status === 401 &&
     !["/api/login", "/api/register", "/api/session"].includes(route)
   ) {
-    hideAuthenticatedApp();
+    hideAuthenticatedApp("", true);
     throw new Error(result.error || "Your login expired. Sign in again.");
   }
   if (!response.ok) {
@@ -206,7 +207,7 @@ function showAuthenticatedApp(expiresAt, username) {
   updateAppUI();
 }
 
-function hideAuthenticatedApp(message = "") {
+function hideAuthenticatedApp(message = "", preservePassword = false) {
   isAuthenticated = false;
   authGeneration += 1;
   if (sessionTimeoutId !== null) {
@@ -224,7 +225,7 @@ function hideAuthenticatedApp(message = "") {
   loginPanel.hidden = false;
   appShell.hidden = true;
   logoutButton.hidden = true;
-  loginPassword.value = "";
+  if (!preservePassword) loginPassword.value = "";
   selectedLocation = { countryCode: "CA", region: "British Columbia" };
   locationSelect.value = selectedLocation.countryCode;
   regionInput.value = selectedLocation.region;
@@ -696,7 +697,7 @@ function setAccountMode(registering) {
     ? "I already have an account"
     : "Create an account instead";
   loginDescription.textContent = registering
-    ? "Create an account to chat about tax topics worldwide and save synthetic demo records. Use a unique password of at least 12 characters."
+    ? "Choose a username of 3–32 characters; letters alone are fine. Use a unique password of at least 12 characters."
     : "Sign in or create an account to chat about tax topics worldwide and save synthetic demo records.";
   loginPassword.autocomplete = registering ? "new-password" : "current-password";
   clearError(loginError);
@@ -716,12 +717,12 @@ loginForm.addEventListener("submit", async (event) => {
       }
     });
     if (!result.authenticated) throw new Error("The server did not create an authenticated session.");
-    loginPassword.value = "";
     showAuthenticatedApp(result.expiresAt, result.username);
     await loadRecordsAndMigrate();
-  } catch (error) {
     loginPassword.value = "";
-    hideAuthenticatedApp(error.message);
+  } catch (error) {
+    if (isAuthenticated) hideAuthenticatedApp(error.message);
+    else showError(loginError, error.message);
   } finally {
     loginSubmit.disabled = false;
   }
@@ -979,4 +980,6 @@ window.addEventListener("pagehide", () => {
 });
 
 populateLocationOptions();
+setAccountMode(false);
+loginSubmit.disabled = false;
 initializeAuth();
