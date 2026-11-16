@@ -49,6 +49,7 @@ This project uses a mix of built-in tools, public standards, and external servic
 - ISO 3166 and ISO 4217 standards for country, region, and currency data
 - Public government sources for the form directory, including Canada Revenue Agency and the Government of British Columbia
 - Synthetic/demo documents and made-up values for examples and testing only
+- AI-assisted development with Copilot SDK in VS Code
 
 Everything in the project is intended for demo and learning use, and real tax or personal data should not be entered.
 
