@@ -37,6 +37,21 @@ It’s meant to help users understand tax information and work through forms in 
 - Users should review AI-generated suggestions before saving or using them.
 - The app is built for demo use and is not meant for real sensitive tax or personal data.
 
+## Credits and sources
+
+This project uses a mix of built-in tools, public standards, and external services:
+
+- Node.js for the app runtime
+- Plain HTML, CSS, and JavaScript for the front end
+- SQLite built into Node.js for local storage
+- pdf-lib for PDF generation and editing
+- Google Gemini for AI chat, extraction, and document review features
+- ISO 3166 and ISO 4217 standards for country, region, and currency data
+- Public government sources for the form directory, including Canada Revenue Agency and the Government of British Columbia
+- Synthetic/demo documents and made-up values for examples and testing only
+
+Everything in the project is intended for demo and learning use, and real tax or personal data should not be entered.
+
 ## Run locally
 
 Use Node.js 22.13 or later. Copy `.env.example` to `.env` and add a Gemini API key if you want the AI features enabled.
