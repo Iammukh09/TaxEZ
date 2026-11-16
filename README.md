@@ -1,5 +1,7 @@
 # TaxEZ
 
+This is a project for a hackathon and isn't meant to be used for other purposes.
+
 TaxEZ is a tax help app built to make tax questions and form work feel a little less overwhelming. You can choose your country, add a region when needed, ask tax questions in a chat, and keep a simple record of your tax info.
 
 It’s designed for quick, rough guidance rather than official filing help. The app gives estimates, explains assumptions, and points users toward official sources when available, but it’s not a replacement for real tax advice or a professional review.
